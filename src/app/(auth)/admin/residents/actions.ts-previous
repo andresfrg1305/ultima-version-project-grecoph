@@ -1,0 +1,100 @@
+"use server";
+
+import { collection, getDocs, addDoc, query, where, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { Profile, Vehicle } from '@/lib/types';
+import type { ResidentData } from './_components/client';
+import type { ResidentFormValues } from './_components/resident-form';
+
+// Helper to convert Firestore timestamp to Date
+const fromTimestamp = (ts: Timestamp | Date): Date => {
+  if (ts instanceof Timestamp) {
+    return ts.toDate();
+  }
+  return ts;
+};
+
+export async function getResidents(): Promise<ResidentData[]> {
+  try {
+    const profilesCollection = collection(db, 'profiles');
+    const q = query(profilesCollection, where('role', '==', 'resident'));
+    const profileSnapshot = await getDocs(q);
+    
+    if (profileSnapshot.empty) {
+      return [];
+    }
+
+    const profiles: Profile[] = profileSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: fromTimestamp(doc.data().createdAt),
+    } as Profile));
+
+    const vehiclesCollection = collection(db, 'vehicles');
+    const vehicleSnapshot = await getDocs(vehiclesCollection);
+    const vehicles: Vehicle[] = vehicleSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vehicle));
+
+    const formattedResidents = profiles.map(resident => {
+      const residentVehicles = vehicles.filter(v => v.userId === resident.id);
+      return {
+        ...resident,
+        vehicleCount: residentVehicles.length,
+        vehicles: residentVehicles.map(v => v.licensePlate).join(', '),
+      };
+    });
+    
+    return formattedResidents.sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+  } catch (error) {
+    console.error("Error fetching residents:", error);
+    return [];
+  }
+}
+
+export async function createResident(data: ResidentFormValues): Promise<{ success: boolean, error?: string }> {
+  try {
+    // Check for duplicate house number
+    const houseQuery = query(collection(db, 'profiles'), where('houseNumber', '==', data.houseNumber));
+    const houseSnapshot = await getDocs(houseQuery);
+    if (!houseSnapshot.empty) {
+      return { success: false, error: 'Esta vivienda ya está registrada.' };
+    }
+
+    // Check for duplicate license plate if provided
+    if (data.licensePlate) {
+      const plateQuery = query(collection(db, 'vehicles'), where('licensePlate', '==', data.licensePlate));
+      const plateSnapshot = await getDocs(plateQuery);
+      if (!plateSnapshot.empty) {
+        return { success: false, error: 'Esta placa de vehículo ya está registrada.' };
+      }
+    }
+
+    // Create resident profile
+    const newResidentRef = await addDoc(collection(db, 'profiles'), {
+      fullName: data.fullName,
+      email: data.email,
+      phone: data.phone,
+      houseNumber: data.houseNumber,
+      interiorNumber: data.interiorNumber,
+      role: 'resident',
+      createdAt: Timestamp.now(),
+    });
+
+    // Create vehicle if data is present
+    if (data.licensePlate && data.brand && data.model && data.color) {
+      await addDoc(collection(db, 'vehicles'), {
+        userId: newResidentRef.id,
+        licensePlate: data.licensePlate,
+        brand: data.brand,
+        model: data.model,
+        color: data.color,
+        active: true,
+      });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error creating resident:", error);
+    return { success: false, error: 'Ocurrió un error en el servidor. Por favor, inténtalo de nuevo.' };
+  }
+}

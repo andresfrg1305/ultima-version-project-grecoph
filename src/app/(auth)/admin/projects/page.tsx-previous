@@ -1,0 +1,35 @@
+
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { communityProjects as initialProjects, projectVotes } from "@/lib/mock-data";
+import type { CommunityProject } from '@/lib/types';
+import { Users } from "lucide-react";
+import { ProjectForm } from './_components/project-form';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import ProjectsList from "./_components/projects-list";
+
+export default function ProjectsAdminPage() {
+
+    const projects = [...initialProjects].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    const handleProjectCreated = (newProject: CommunityProject) => {
+        initialProjects.unshift(newProject);
+    };
+
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight font-headline">Gestión de Proyectos</h1>
+                    <p className="text-muted-foreground">
+                        Crea, publica y sigue el progreso de los proyectos de la comunidad.
+                    </p>
+                </div>
+                <ProjectForm onProjectCreated={handleProjectCreated} />
+            </div>
+            
+            <ProjectsList initialProjects={projects} />
+        </div>
+    );
+}
