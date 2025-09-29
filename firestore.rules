@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Perfiles de usuario - admins pueden leer todos, usuarios solo el suyo
+    match /profiles/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || request.auth.token.admin == true);
+      allow write: if request.auth != null && (request.auth.uid == userId || request.auth.token.admin == true);
+      allow create: if request.auth != null;
+    }
+
+    // Vehículos - usuarios pueden gestionar sus propios vehículos, admins todos
+    match /vehicles/{vehicleId} {
+      allow read, write: if request.auth != null && (resource.data.userId == request.auth.uid || request.auth.token.admin == true);
+      allow create: if request.auth != null;
+    }
+
+    // Parqueaderos - admins pueden gestionar todo, usuarios autenticados pueden leer
+    match /parkingSpaces/{spaceId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow create: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Asignaciones de parqueadero - usuarios ven las suyas, admins todas
+    match /parkingAssignments/{assignmentId} {
+      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || request.auth.token.admin == true);
+      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow create: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Notificaciones - usuarios leen las suyas, admins crean para todos
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow create: if request.auth != null && request.auth.token.admin == true;
+      // Permitir actualizar el campo 'read' para marcar como leída
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid &&
+                    request.resource.data.diff(resource.data).affectedKeys() == ['read'].toSet();
+    }
+
+    // Proyectos - admins gestionan, usuarios autenticados leen
+    match /projects/{projectId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow create: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Configuración general - solo admins
+    match /settings/{settingId} {
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      allow create: if request.auth != null && request.auth.token.admin == true;
+    }
+  }
+}

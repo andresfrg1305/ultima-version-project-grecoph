@@ -73,9 +73,9 @@ const getFormData = async (): Promise<{ residentsWithVehicles: (Profile & { vehi
         console.error("Firestore is not initialized.");
         return { residentsWithVehicles: [], availableSpots: [] };
     }
-    
+
     const [profilesSnap, vehiclesSnap, spotsSnap] = await Promise.all([
-        db.collection('profiles').where('role', '==', 'resident').get(),
+        db.collection('profiles').where('role', '==', 'resident').where('paymentStatus', '==', 'current').get(),
         db.collection('vehicles').where('active', '==', true).get(),
         db.collection('parkingSpots').where('status', '==', 'available').get()
     ]);
@@ -102,13 +102,27 @@ const getFormData = async (): Promise<{ residentsWithVehicles: (Profile & { vehi
       } as Vehicle;
     });
     const availableSpots = spotsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ParkingSpot));
-    
+
     const residentsWithVehicles = profiles
         .map(resident => ({
             ...resident,
             vehicles: vehicles.filter(v => v.userId === resident.id),
         }))
         .filter(resident => resident.vehicles.length > 0);
+
+    console.log('=== DIAGNÓSTICO DE PARQUEADEROS ===');
+    console.log('Total residentes en BD:', profiles.length);
+    console.log('Residentes con paymentStatus current:', profiles.filter(p => p.paymentStatus === 'current').length);
+    console.log('Residentes con paymentStatus overdue:', profiles.filter(p => p.paymentStatus === 'overdue').length);
+    console.log('Residentes sin paymentStatus:', profiles.filter(p => !p.paymentStatus).length);
+    console.log('Total vehículos activos:', vehicles.length);
+    console.log('Residentes que cumplen criterios para parqueaderos:', residentsWithVehicles.length);
+    console.log('Detalle de residentes filtrados:', residentsWithVehicles.map(r => ({
+        name: r.fullName,
+        paymentStatus: r.paymentStatus,
+        vehiclesCount: r.vehicles.length,
+        house: r.houseNumber
+    })));
 
     return { residentsWithVehicles, availableSpots };
 }
@@ -127,7 +141,11 @@ export default async function ParkingAdminPage() {
             Visualiza, busca y gestiona todas las asignaciones de parqueaderos del conjunto residencial.
           </p>
         </div>
-        <form action={rotateParking}>
+        <form action={async () => {
+          "use server";
+          const result = await rotateParking();
+          // El resultado se maneja en el servidor, no necesitamos hacer nada aquí
+        }}>
           <Button variant="outline" type="submit">
             <RotateCcw className="mr-2 h-4 w-4" />
             Rotar Parqueaderos

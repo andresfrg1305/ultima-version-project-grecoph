@@ -16,6 +16,8 @@ Almacena la información de todos los usuarios registrados en el sistema, tanto 
   - `phone`: (string) Número de teléfono de contacto.
   - `interiorNumber`: (number) Número del interior o torre donde vive.
   - `houseNumber`: (string) Identificador completo de la vivienda (Ej: "Int 5 Casa 101"). **Debe ser único**.
+  - `paymentStatus`: (string) Estado de pagos de administración. Puede ser `'current'` (al día) o `'overdue'` (moroso).
+  - `lastPaymentDate`: (timestamp) Fecha del último pago de administración realizado.
   - `createdAt`: (timestamp) Fecha de creación del perfil.
 
 ### 2. `vehicles`

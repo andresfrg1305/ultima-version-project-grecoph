@@ -6,6 +6,8 @@ export interface Profile {
   phone: string;
   interiorNumber: number;
   houseNumber: string;
+  paymentStatus: 'current' | 'overdue'; // Estado de pagos de administración
+  lastPaymentDate?: any; // Fecha del último pago (opcional para nuevos residentes)
   createdAt: any; // Can be Date or Firebase Timestamp
 }
 

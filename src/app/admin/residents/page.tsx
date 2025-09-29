@@ -11,6 +11,7 @@ export type ResidentData = {
   phone: string;
   interiorNumber: number;
   houseNumber: string;
+  paymentStatus: 'current' | 'overdue';
   vehicleCount: number;
   vehicles: string;
 };
@@ -48,6 +49,7 @@ async function getResidents(): Promise<ResidentData[]> {
       phone: p.phone,
       interiorNumber: p.interiorNumber,
       houseNumber: p.houseNumber,
+      paymentStatus: p.paymentStatus || 'current', // Default to 'current' for existing residents
       vehicleCount: userVehicles.length,
       vehicles: userVehicles.join(", "),
     };

@@ -8,7 +8,6 @@ import { Menu, Search } from 'lucide-react';
 import { getUserProfile } from '@/lib/firebase/server';
 import { cookies } from 'next/headers';
 import type { Profile } from '@/lib/types';
-import { AuthChecker } from '@/components/auth-checker';
 
 export default async function ResidentLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
@@ -52,9 +51,7 @@ export default async function ResidentLayout({ children }: { children: React.Rea
   }
 
   return (
-    <>
-      <AuthChecker />
-      <SidebarProvider>
+    <SidebarProvider>
         <div className="flex min-h-screen w-full">
           <AppSidebar user={user} />
           <div className="flex flex-col flex-1">
@@ -83,7 +80,6 @@ export default async function ResidentLayout({ children }: { children: React.Rea
           </div>
         </div>
       </SidebarProvider>
-    </>
   );
 }
 

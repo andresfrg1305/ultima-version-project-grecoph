@@ -24,6 +24,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, PlusCircle, Car, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -40,6 +41,10 @@ const formSchema = z.object({
     (a) => parseInt(z.string().parse(a), 10),
     z.number().min(1, 'El interior debe ser mayor a 0.').max(8, 'El interior debe ser máximo 8.')
   ),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
+  paymentStatus: z.enum(['current', 'overdue'], {
+    required_error: 'Debe seleccionar el estado de pagos.',
+  }),
   licensePlate: z.string().optional().or(z.literal('')).refine(val => !val || /^[A-Z]{3}-\d{3}$/.test(val), {
     message: "La placa debe tener el formato ABC-123 o estar vacía.",
   }),
@@ -76,6 +81,8 @@ export function ResidentForm({ onResidentCreated }: ResidentFormProps) {
       phone: '',
       houseNumber: '',
       interiorNumber: 1,
+      password: '',
+      paymentStatus: 'current',
       licensePlate: '',
       brand: '',
       model: '',
@@ -84,15 +91,22 @@ export function ResidentForm({ onResidentCreated }: ResidentFormProps) {
   });
   
   const onSubmit = async (data: ResidentFormValues) => {
+    console.log('=== FORMULARIO ENVIADO ===');
+    console.log('Datos del formulario:', data);
     setIsLoading(true);
-    
+
+    console.log('Enviando datos al servidor...');
     const result = await createResident(data);
+    console.log('Respuesta del servidor:', result);
 
     if (result.success && result.data) {
+      console.log('✅ Residente creado exitosamente');
       onResidentCreated(result.data);
+      const passwordMessage = `Se usó la contraseña proporcionada.`;
+
       toast({
         title: 'Residente Creado',
-        description: `El residente ${data.fullName} ha sido creado exitosamente.`,
+        description: `El residente ${data.fullName} ha sido creado exitosamente. ${passwordMessage}`,
       });
       setOpen(false);
       form.reset();
@@ -121,7 +135,7 @@ export function ResidentForm({ onResidentCreated }: ResidentFormProps) {
             <DialogHeader>
               <DialogTitle>Crear Nuevo Residente</DialogTitle>
               <DialogDescription>
-                Completa el formulario para registrar un nuevo residente y opcionalmente su vehículo. La contraseña es para el primer inicio de sesión.
+                Completa el formulario para registrar un nuevo residente y opcionalmente su vehículo. Puedes proporcionar una contraseña o dejar el campo vacío para generar una automáticamente.
               </DialogDescription>
             </DialogHeader>
 
@@ -148,6 +162,19 @@ export function ResidentForm({ onResidentCreated }: ResidentFormProps) {
                         <FormLabel>Email (para inicio de sesión)</FormLabel>
                         <FormControl>
                         <Input type="email" placeholder="ejemplo@email.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Contraseña (requerida para el primer inicio de sesión)</FormLabel>
+                        <FormControl>
+                        <Input type="password" placeholder="Contraseña para el residente" {...field} required />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -192,6 +219,27 @@ export function ResidentForm({ onResidentCreated }: ResidentFormProps) {
                         <FormControl>
                         <Input placeholder="Ej: Int 5 Casa 101" {...field} />
                         </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="paymentStatus"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Estado de Pagos de Administración</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona el estado de pagos" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="current">Al día</SelectItem>
+                                <SelectItem value="overdue">Moroso</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <FormMessage />
                     </FormItem>
                     )}
